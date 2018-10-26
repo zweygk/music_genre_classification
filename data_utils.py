@@ -11,6 +11,7 @@ def Import_Data(data_file, label_file):
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LassoCV
+from sklearn.utils import shuffle
 
 def Remove_Zero_Variance(data):
     selector = VarianceThreshold()
@@ -32,12 +33,12 @@ def Normalize(data, type_string):
     if type_string == 'min-max':
         z = (data - data.mean()) / (data.max() - data.min())
     elif type_string == 'z-score':
-        z = (data-data.mean())/data.std
+        z = (data-data.mean())/data.std()
     elif type_string == 'tanh':
-        z = 0.5*(np.tanh(0.01*(data-data.mean)/data.std)+1)
+        z = 0.5*(np.tanh(0.01*(data-data.mean())/data.std())+1)
     else:
         z = (data - data.mean()) / (data.max() - data.min())
-    debug_msg = str('Data normalized using ' + type_string + ' method.')
+    debug_msg = str('Data normalized using ' + type_string + ' method. Range: ['+ str(z.min())+', '+str(z.max())+'].')
     print(debug_msg)
     return z
 
@@ -48,3 +49,9 @@ def Split_Data(data, labels, ratio=0.3, state=213):
     debug_msg = 'Data successfully split. Test data ratio = '+str(ratio)
     print(debug_msg)
     return X_train, X_test, y_train, y_test
+
+def Shuffle(data,labels):
+    shuffled_data, shuffled_labels = shuffle(data,labels)
+    debug_msg = 'Data successfully shuffled'
+    print(debug_msg)
+    return shuffled_data, shuffled_labels
