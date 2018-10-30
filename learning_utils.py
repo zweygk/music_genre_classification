@@ -32,7 +32,7 @@ def Learn_Random_Forest(data, labels):
     model = OneVsRestClassifier(RandomForestClassifier(n_estimators=500,
                                                        criterion='entropy',
                                                        oob_score=True))
-    parameters = {'estimator__max_depth': [11,12,13]}
+    parameters = {'estimator__max_depth': [13]}
     model_tuned = GridSearchCV(model, parameters)
     model_tuned.fit(data, labels)
     
@@ -71,10 +71,11 @@ def Create_Multilayer_Perceptron(data, labels):
                     kernel_initializer='random_uniform',
                     bias_initializer='zeros'))
     model.add(BatchNormalization())
+    #model.add(Dropout(0.53))
+    #model.add(Dense(units=64, activation='relu'))
     model.add(Dropout(0.53))
     model.add(Dense(units=64, activation='relu'))
     model.add(Dropout(0.53))
-    model.add(Dense(units=64, activation='relu'))
     model.add(Dense(10, activation='softmax'))
     return model
 
@@ -87,7 +88,7 @@ def Learn_Multilayer_Perceptron(data, labels, model, learning_rate=0.0001,valida
     
     callbacks_list, save_path = Callbacks()
     
-    model.fit(data, categorical_labels,validation_split=0.33,batch_size=256, epochs=50000, callbacks=callbacks_list)
+    model.fit(data, categorical_labels,validation_split=0.33,batch_size=32, epochs=50000, callbacks=callbacks_list)
     model = load_model(save_path)
     
     return model
