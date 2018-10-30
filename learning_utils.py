@@ -29,8 +29,10 @@ def Learn_Multiclass_SVM(data,labels):
     return model_tuned
 
 def Learn_Random_Forest(data, labels):
-    model = OneVsRestClassifier(RandomForestClassifier())
-    parameters = {'estimator__max_depth': [7,8,10,11,12,13]}
+    model = OneVsRestClassifier(RandomForestClassifier(n_estimators=500,
+                                                       criterion='entropy',
+                                                       oob_score=True))
+    parameters = {'estimator__max_depth': [11,12,13]}
     model_tuned = GridSearchCV(model, parameters)
     model_tuned.fit(data, labels)
     
@@ -39,6 +41,7 @@ def Learn_Random_Forest(data, labels):
     
     debug_msg = 'Best score: '+str(best_score)+', using parameters: '+str(best_params)
     print(debug_msg)
+    return model_tuned
 
 def Predict(model, test_data):
     predictions = model.predict(test_data)
@@ -53,36 +56,57 @@ def Accuracy_Score(true, predictions):
 
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation
+from keras.layers.normalization import BatchNormalization
+from keras.layers.convolutional import Conv1D
 from keras.optimizers import Adam
 from keras.utils import to_categorical
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import regularizers
+import datetime
 
-def Learn_Multilayer_Perceptron(data, labels, learning_rate=0.0001,validation_split=0.33):
+def Create_Multilayer_Perceptron(data, labels):
+    model = Sequential()
+    model.add(Dense(units=128, input_dim=data.shape[1],
+                    activation = 'sigmoid',
+                    kernel_initializer='random_uniform',
+                    bias_initializer='zeros'))
+    model.add(BatchNormalization())
+    model.add(Dropout(0.53))
+    model.add(Dense(units=64, activation='relu'))
+    model.add(Dropout(0.53))
+    model.add(Dense(units=64, activation='relu'))
+    model.add(Dense(10, activation='softmax'))
+    return model
+
+def Learn_Multilayer_Perceptron(data, labels, model, learning_rate=0.0001,validation_split=0.33):
     labels = labels-1
     categorical_labels = to_categorical(labels,num_classes=10)
-    model = Sequential()
-    model.add(Dense(64,activation='relu',
-                    kernel_regularizer=regularizers.l2(0.0001),
-                    input_dim=data.shape[1]))
-    model.add(Dropout(0.5))
-    model.add(Dense(64,activation='relu',
-                    kernel_regularizer=regularizers.l2(0.0001)))
-    model.add(Dropout(0.5))
-    model.add(Dense(10, activation='softmax'))
     
     adam = Adam(lr=learning_rate)
     model.compile(loss='categorical_crossentropy',optimizer=adam,metrics=['accuracy'])
     
-    filepath = 'best_perceptron_model.h5'
-    checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-    callbacks_list = [checkpoint]
+    callbacks_list, save_path = Callbacks()
     
-    model.fit(data, categorical_labels,validation_split=0.33,batch_size=512, epochs=50000, callbacks=callbacks_list)
+    model.fit(data, categorical_labels,validation_split=0.33,batch_size=256, epochs=50000, callbacks=callbacks_list)
+    model = load_model(save_path)
+    
     return model
+
+def Callbacks():
+    start_datetime = str(datetime.datetime.now())
+    for ch in [' ',':','.']:
+        start_datetime = start_datetime.replace(ch,'_')
+    save_path = 'best_perceptron_model_'+start_datetime+'.h5'
+    checkpoint = ModelCheckpoint(save_path, monitor='val_acc',
+                                 verbose = 1, save_best_only=True,
+                                 mode='max',period=1)
+    early_stopping = EarlyStopping(monitor='val_acc', min_delta=0.01,
+                                   patience=1200, verbose=1, mode='max')
+    callbacks_list = [checkpoint,early_stopping]
+    return callbacks_list, save_path
     
-def Evaluate_NN_Performance(model_name, test_data, test_labels):
-    model = load_model(model_name)
+    
+def Evaluate_NN_Performance(model, test_data, test_labels):
     test_labels = test_labels - 1
     categorical_labels = to_categorical(test_labels, num_classes=10)
     score = model.evaluate(test_data, categorical_labels, batch_size=512)

@@ -12,6 +12,9 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LassoCV
 from sklearn.utils import shuffle
+from sklearn.decomposition import PCA
+import imblearn
+from imblearn.combine import SMOTETomek
 
 def Remove_Zero_Variance(data):
     selector = VarianceThreshold()
@@ -55,3 +58,20 @@ def Shuffle(data,labels):
     debug_msg = 'Data successfully shuffled'
     print(debug_msg)
     return shuffled_data, shuffled_labels
+
+def PCA_fit(traindata,var_explained):
+    pca = PCA(var_explained)
+    pca.fit(traindata)
+    return pca
+
+def PCA_transform(pca, data):
+    # Transform
+    data_out = pca.transform(data)
+    print(data_out.shape)
+    return data_out
+    
+def Resample(data, labels):
+    smt = SMOTETomek(ratio='auto')
+    X_smt, y_smt = smt.fit_sample(data,labels)
+    print("Resampling complete")
+    return X_smt, y_smt
