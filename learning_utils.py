@@ -1,10 +1,13 @@
 from sklearn import datasets
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer
 from sklearn.ensemble import RandomForestClassifier
+import xgboost as xgb
+from sklearn.utils import class_weight
+import numpy as np
 
 
 def Learn_Multiclass_SVM(data,labels):
@@ -28,10 +31,44 @@ def Learn_Multiclass_SVM(data,labels):
     print(debug_msg)
     return model_tuned
 
+def Learn_XGBoost(train_features,train_labels,test_features=None,test_labels=None,max_depth=500,num_round=100,use_weights=False):
+    model_name = 'xboost.mdl'
+    train_labels = train_labels-1 # Get labels 0 - 9
+    test_labels = test_labels-1 # Get labels 0 - 9
+    if(use_weights):        
+        class_weights = class_weight.compute_class_weight('balanced'
+                                               ,np.unique(train_labels)
+                                               ,train_labels)
+        train_weights = np.zeros(train_labels.shape[0])
+        test_weights = np.zeros(test_labels.shape[0])
+        for i in range(train_labels.shape[0]):
+            train_weights[i] = class_weights[train_labels.values[i]][0]
+        for i in range(test_labels.shape[0]):
+            test_weights[i] = class_weights[test_labels.values[i]][0]
+    else:
+        train_weights = None
+        test_weights = None
+    dtrain = xgb.DMatrix(data=train_features,label=train_labels,weight=train_weights)
+    dtest = xgb.DMatrix(data=test_features,label=test_labels,weight=test_weights)
+    param = {'max_depth':max_depth, 'eta':1, 'silent':1, 'objective':'multi:softprob', 'num_class':10}
+    watchlist = [(dtest, 'eval'), (dtrain, 'train')]
+    bst = xgb.train(param,dtrain,num_round,watchlist)
+    bst.save_model(model_name)
+    return bst
+
+# Returns probabilities for each label from every prediction
+def XGB_Predict(xgb_model,test_features,test_labels):
+    test_labels=test_labels-1 # Transform to range 0-9
+    dtest = xgb.DMatrix(data=test_features,label=test_labels)
+    pred_labels_score = xgb_model.predict(dtest)
+    pred_labels = np.argmax(pred_labels_score,axis=1)
+    pred_labels = pred_labels + 1 # Transform back to range 1-10
+    return pred_labels, pred_labels_score
+
 def Learn_Random_Forest(data, labels):
     model = OneVsRestClassifier(RandomForestClassifier(n_estimators=500,
                                                        criterion='entropy',
-                                                       oob_score=True))
+                                                       oob_score=True,verbose=True))
     parameters = {'estimator__max_depth': [13]}
     model_tuned = GridSearchCV(model, parameters)
     model_tuned.fit(data, labels)
