@@ -13,8 +13,10 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import LassoCV
 from sklearn.utils import shuffle
 from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
 import imblearn
 from imblearn.combine import SMOTETomek
+from imblearn.under_sampling import TomekLinks, InstanceHardnessThreshold, OneSidedSelection
 
 def Remove_Zero_Variance(data):
     selector = VarianceThreshold()
@@ -34,7 +36,7 @@ def Select_Features_From_Model(data, labels, model_name='LassoCV'):
         
 def Normalize(data, type_string):
     if type_string == 'min-max':
-        z = (data - data.mean()) / (data.max() - data.min())
+        z = (data - data.min()) / (data.max() - data.min())
     elif type_string == 'z-score':
         z = (data-data.mean())/data.std()
     elif type_string == 'tanh':
@@ -70,8 +72,16 @@ def PCA_transform(pca, data):
     print(data_out.shape)
     return data_out
     
-def Resample(data, labels):
-    smt = SMOTETomek(ratio='auto')
-    X_smt, y_smt = smt.fit_sample(data,labels)
+def Resample(data, labels, sampling_method='TomekLinks'):
+    if sampling_method == 'SMOTETomek':
+        rs = SMOTETomek(ratio='auto')
+    elif sampling_method == 'TomekLinks':
+        rs = TomekLinks()
+    elif sampling_method == 'InstanceHardnessThreshold':
+        rs = InstanceHardnessThreshold(estimator=LogisticRegression(
+                solver='lbfgs', multi_class='auto'))
+    elif sampling_method == 'OneSidedSelection':
+        rs = OneSidedSelection()
+    X_rs, y_rs = rs.fit_sample(data,labels)
     print("Resampling complete")
-    return X_smt, y_smt
+    return X_rs, y_rs

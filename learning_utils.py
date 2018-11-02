@@ -1,7 +1,7 @@
 from sklearn import datasets
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer
 from sklearn.ensemble import RandomForestClassifier
