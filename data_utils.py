@@ -17,7 +17,7 @@ from sklearn.linear_model import LogisticRegression
 import imblearn
 from imblearn.combine import SMOTETomek
 from imblearn.under_sampling import TomekLinks, InstanceHardnessThreshold, OneSidedSelection
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, scale
 
 def Remove_Zero_Variance(data):
     selector = VarianceThreshold()
@@ -91,3 +91,10 @@ def Resample(data, labels, sampling_method='TomekLinks'):
     X_rs, y_rs = rs.fit_sample(data,labels)
     print("Resampling complete. Sample amount changed from "+str(data.shape[0])+' to '+str(X_rs.shape[0]))
     return X_rs, y_rs
+
+def Low_variance(X,threshold):
+    X = Remove_Zero_Variance(X)
+    X_norm = scale(X,axis=1)
+    X_var_norm = np.var(X_norm,axis=0)
+    low_variances = np.where(X_var_norm < threshold)[0]
+    return list(low_variances)
