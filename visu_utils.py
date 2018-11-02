@@ -110,5 +110,8 @@ def performance_report(test_labels,pred_labels):
     print("Accuracy: ",accuracy_score(test_labels,pred_labels))
     print("Balanced Accuracy: ",balanced_accuracy_score(test_labels,pred_labels))
 
-
+def plot_confusion_mat(npmatrix,size):
+    df = pd.DataFrame(npmatrix)
+    plt.figure(figsize = (size[0],size[1]))
+    heatmap = sns.heatmap(df)
     

@@ -1,27 +1,29 @@
 from sklearn import datasets
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC, LinearSVC
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import make_scorer
 from sklearn.ensemble import RandomForestClassifier
 import xgboost as xgb
 from sklearn.utils import class_weight
 import numpy as np
+from sklearn.model_selection import cross_val_score
 
 
 
-def Learn_Multiclass_SVM(data,labels,gamma_exps=[-6,-7], C_exps=[1,2,3]):
-    model = OneVsRestClassifier(SVC())
+
+def Learn_Multiclass_SVM(data,labels,gamma_exps=[4], C_exps=[6.5]):
+    model = OneVsRestClassifier(SVC(class_weight='auto',))
     parameters = {
-    "estimator__C": list(np.float_power(2,C_exps)),
+    "estimator__C": list(np.float_power(3,C_exps)),
     "estimator__kernel": ["rbf"],
     "estimator__gamma": list(np.float_power(2,gamma_exps))
     }
     
     accuracy = make_scorer(accuracy_score)
     
-    model_tuned = GridSearchCV(model, param_grid=parameters, scoring=accuracy, cv=6,verbose=True)
+    model_tuned = GridSearchCV(model, param_grid=parameters, scoring=accuracy, cv=5,verbose=True)
     model_tuned.fit(data, labels)
     
     best_score = model_tuned.best_score_
@@ -30,6 +32,19 @@ def Learn_Multiclass_SVM(data,labels,gamma_exps=[-6,-7], C_exps=[1,2,3]):
     debug_msg = 'Best score: '+str(best_score)+', using parameters: '+str(best_params)
     print(debug_msg)
     return model_tuned
+
+def Learn_SVM(X_train,y_train):
+    model = GridSearchCV(LinearSVC(penalty='l2', loss='squared_hinge', dual=False,
+                       tol=1e-4,multi_class='ovr'), param_grid={"C":[0.001,0.01,0.1]},cv=5,verbose=True)
+    model.fit(X_train,y_train)
+    
+    best_score = model.best_score_
+    best_params = model.best_params_
+    
+    debug_msg = 'Best score: '+str(best_score)+', using parameters: '+str(best_params)
+    print(debug_msg)
+    return model
+    
 # NUMPY ARRAYS AS INPUT!
 def Learn_XGBoost(train_features,train_labels,test_features,test_labels,max_depth=500,num_round=100,use_weights=False,verbose=False):
     model_name = 'xboost.mdl'
