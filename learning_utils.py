@@ -10,18 +10,18 @@ from sklearn.utils import class_weight
 import numpy as np
 
 
-def Learn_Multiclass_SVM(data,labels):
+
+def Learn_Multiclass_SVM(data,labels,gamma_exps=[-6,-7], C_exps=[1,2,3]):
     model = OneVsRestClassifier(SVC())
-    
     parameters = {
-    "estimator__C": [2**6,2**7,2**8,2**9,2**10,2**11,2**12.2**14],
+    "estimator__C": list(np.float_power(2,C_exps)),
     "estimator__kernel": ["rbf"],
-    "estimator__gamma":[2**0,2**1,2**2,2**3,2**4,2**5,2**6,2**7,2**8,2**9,2**10]
+    "estimator__gamma": list(np.float_power(2,gamma_exps))
     }
     
     accuracy = make_scorer(accuracy_score)
     
-    model_tuned = GridSearchCV(model, param_grid=parameters, scoring=accuracy, cv=6)
+    model_tuned = GridSearchCV(model, param_grid=parameters, scoring=accuracy, cv=6,verbose=True)
     model_tuned.fit(data, labels)
     
     best_score = model_tuned.best_score_
@@ -30,11 +30,13 @@ def Learn_Multiclass_SVM(data,labels):
     debug_msg = 'Best score: '+str(best_score)+', using parameters: '+str(best_params)
     print(debug_msg)
     return model_tuned
-
-def Learn_XGBoost(train_features,train_labels,test_features=None,test_labels=None,max_depth=500,num_round=100,use_weights=False):
+# NUMPY ARRAYS AS INPUT!
+def Learn_XGBoost(train_features,train_labels,test_features,test_labels,max_depth=500,num_round=100,use_weights=False,verbose=False):
     model_name = 'xboost.mdl'
     train_labels = train_labels-1 # Get labels 0 - 9
     test_labels = test_labels-1 # Get labels 0 - 9
+    train_labels.resize(train_labels.shape[0])
+    test_labels.resize(test_labels.shape[0])
     if(use_weights):        
         class_weights = class_weight.compute_class_weight('balanced'
                                                ,np.unique(train_labels)
@@ -42,17 +44,17 @@ def Learn_XGBoost(train_features,train_labels,test_features=None,test_labels=Non
         train_weights = np.zeros(train_labels.shape[0])
         test_weights = np.zeros(test_labels.shape[0])
         for i in range(train_labels.shape[0]):
-            train_weights[i] = class_weights[train_labels.values[i]][0]
+            train_weights[i] = class_weights[train_labels[i]]
         for i in range(test_labels.shape[0]):
-            test_weights[i] = class_weights[test_labels.values[i]][0]
+            test_weights[i] = class_weights[test_labels[i]]
     else:
         train_weights = None
         test_weights = None
     dtrain = xgb.DMatrix(data=train_features,label=train_labels,weight=train_weights)
     dtest = xgb.DMatrix(data=test_features,label=test_labels,weight=test_weights)
     param = {'max_depth':max_depth, 'eta':1, 'silent':1, 'objective':'multi:softprob', 'num_class':10}
-    watchlist = [(dtest, 'eval'), (dtrain, 'train')]
-    bst = xgb.train(param,dtrain,num_round,watchlist)
+    watchlist = [(dtest, 'eval'), (dtrain, 'train')] 
+    bst = xgb.train(param,dtrain,num_round,watchlist,verbose_eval=verbose)
     bst.save_model(model_name)
     return bst
 
